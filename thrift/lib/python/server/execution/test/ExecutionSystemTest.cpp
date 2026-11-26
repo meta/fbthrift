@@ -570,5 +570,57 @@ TEST(ExecutionSystemTest, EachRequestDispatchesUnderItsOwnRequestContext) {
   EXPECT_EQ(expected, dispatchContexts);
 }
 
+TEST(
+    ExecutionSystemTest, WorkerRequestResumesOnItsWorkerAfterDispatchSuspends) {
+  // GIVEN
+  const folly::Executor* currentExecutorTracker = nullptr;
+  ExecutorThatReportsItself controlExecutor(currentExecutorTracker);
+  ExecutorThatReportsItself workerExecutor(currentExecutorTracker);
+  const std::string workerCapableMethod{"worker_capable_method"};
+  auto* const handlerFunction = reinterpret_cast<PyObject*>(41);
+  auto workScheduler = std::make_shared<WorkScheduler>();
+  const auto worker = workScheduler->registerWorker(
+      folly::Executor::getKeepAliveToken(workerExecutor));
+  auto executionSystem = makeWorkerCapableExecutionSystem(
+      &controlExecutor,
+      [](PyObject*) { return 0; },
+      {{workerCapableMethod, handlerFunction}},
+      workScheduler,
+      [](PyObject*, std::shared_ptr<WorkerCapacityLease>) { return 0; },
+      {workerCapableMethod});
+  executionSystem->bindWorkerMethods(
+      worker, {{workerCapableMethod, handlerFunction}});
+  workScheduler->makeWorkerCapacityAvailable(worker);
+  // Stands in for a native ServiceInterceptor that suspends the request and
+  // completes on another thread.
+  auto [interceptorPromise, interceptorFuture] =
+      folly::makePromiseContract<folly::Unit>();
+  const folly::Executor* resumedOn = nullptr;
+
+  // WHEN
+  executionSystem->execute(
+      workerCapableMethod,
+      RequestDispatch(
+          folly::Executor::KeepAlive<>{},
+          [&currentExecutorTracker,
+           &resumedOn,
+           pendingInterceptorFuture = std::move(interceptorFuture)](
+              PyObject*,
+              const folly::Executor::KeepAlive<>&,
+              LaunchRequest) mutable {
+            return std::move(pendingInterceptorFuture)
+                .deferValue([&currentExecutorTracker, &resumedOn](folly::Unit) {
+                  resumedOn = currentExecutorTracker;
+                });
+          }));
+  workerExecutor.drain();
+  interceptorPromise.setValue();
+  workerExecutor.drain();
+  workScheduler->close();
+
+  // THEN
+  EXPECT_EQ(&workerExecutor, resumedOn);
+}
+
 } // namespace
 } // namespace apache::thrift::python::execution

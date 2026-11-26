@@ -16,7 +16,6 @@
 
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 
-#include <folly/executors/InlineExecutor.h>
 #include <folly/io/async/Request.h>
 
 namespace apache::thrift::python::execution {
@@ -89,9 +88,10 @@ void ExecutionSystem::executeOnWorker(
           const WorkerHandle& worker,
           const folly::Executor::KeepAlive<>& workerExecutor,
           std::shared_ptr<WorkerCapacityLease> lease) mutable {
-        // Runs the request under the RequestContext that was current at
-        // hand-off, as a future continuation does on control, and gives the
-        // worker thread its previous context back when the request leaves.
+        // Makes the RequestContext that was current at hand-off current while
+        // the dispatch is set up; the dispatch's work on the worker inherits it
+        // from there, as a future continuation does on control. The worker
+        // thread gets its previous context back when this callback returns.
         folly::RequestContextScopeGuard requestContextGuard{
             std::move(requestContext)};
         auto* const selectedFunction = getWorkerHandlerFunction(worker, method);
@@ -100,22 +100,21 @@ void ExecutionSystem::executeOnWorker(
              launchWorkerRequest](_object* coroutineFactory) mutable {
               return launchWorkerRequest(coroutineFactory, std::move(lease));
             });
-        // Drive the dispatch future inline; dropping it undriven cancels
-        // the request. The dispatch reports each outcome to the client
-        // itself, as it does on control, so nothing reads this future.
-        folly::makeSemiFutureWith(
-            [requestDispatch = std::move(requestDispatch),
-             selectedFunction = selectedFunction,
-             workerExecutor = workerExecutor,
-             launchRequest = std::move(launchRequest)]() mutable {
-              return std::move(requestDispatch)(
-                  selectedFunction,
-                  std::move(workerExecutor),
-                  std::move(launchRequest));
-            })
-            .via(
-                folly::Executor::getKeepAliveToken(
-                    folly::InlineExecutor::instance()));
+        // Drive the dispatch future on the worker; dropping it undriven
+        // cancels the request. A dispatch that suspends, as in a native
+        // interceptor, then resumes on the worker's loop, where Python runs.
+        // The dispatch reports each outcome to the client itself, as it does
+        // on control, so nothing reads this future.
+        folly::makeSemiFutureWith([requestDispatch = std::move(requestDispatch),
+                                   selectedFunction = selectedFunction,
+                                   workerExecutor = workerExecutor,
+                                   launchRequest =
+                                       std::move(launchRequest)]() mutable {
+          return std::move(requestDispatch)(
+              selectedFunction,
+              std::move(workerExecutor),
+              std::move(launchRequest));
+        }).via(workerExecutor);
       },
       folly::Executor::MID_PRI);
 }
