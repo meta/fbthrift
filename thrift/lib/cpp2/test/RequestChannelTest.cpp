@@ -23,7 +23,7 @@
 #include <gtest/gtest.h>
 #include <folly/Memory.h>
 #include <folly/io/async/EventBase.h>
-#include <folly/io/async/test/ScopedBoundPort.h>
+#include <folly/io/async/testing/ScopedBoundPort.h>
 
 #include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
