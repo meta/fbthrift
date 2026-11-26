@@ -253,22 +253,22 @@ public final class CountingStruct implements com.facebook.thrift.payload.ThriftS
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.regularInt != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.I64;
+                    + com.facebook.thrift.util.ThriftSizes.I64);
         }
 
         if (this.countingInt != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.I64;
+                    + com.facebook.thrift.util.ThriftSizes.I64);
         }
 
         if (this.regularString != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.regularString);
+                        this.regularString));
         }
 
         return _fbthriftSize;

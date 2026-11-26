@@ -271,20 +271,22 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
         switch (this.id) {
 
         case _AN_SNAKE_STRING: {
-            String
-                _fbthriftVar0 =
+            String _fbthriftVar0 =
                 (String) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
             break;
         }
 
         case _ACAMELI32: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 

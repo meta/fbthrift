@@ -215,10 +215,10 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
                     + com.facebook.thrift.util.ThriftSizes.ENUM;
 
         if (this.name != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.name);
+                        this.name));
         }
 
         return _fbthriftSize;

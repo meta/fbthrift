@@ -277,20 +277,22 @@ public final class DataUnion implements com.facebook.thrift.payload.ThriftSerial
         switch (this.id) {
 
         case _BINARYDATA: {
-            byte[]
-                _fbthriftVar0 =
+            byte[] _fbthriftVar0 =
                 (byte[]) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0));
             break;
         }
 
         case _STRINGDATA: {
-            String
-                _fbthriftVar0 =
+            String _fbthriftVar0 =
                 (String) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
             break;
         }
 

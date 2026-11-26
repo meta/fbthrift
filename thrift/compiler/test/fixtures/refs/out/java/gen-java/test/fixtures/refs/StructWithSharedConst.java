@@ -253,13 +253,15 @@ public final class StructWithSharedConst implements com.facebook.thrift.payload.
             test.fixtures.refs.MyField _fbthriftVar0 =
                 this.optSharedConst;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }
@@ -268,13 +270,15 @@ public final class StructWithSharedConst implements com.facebook.thrift.payload.
             test.fixtures.refs.MyField _fbthriftVar0 =
                 this.sharedConst;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }
@@ -283,13 +287,15 @@ public final class StructWithSharedConst implements com.facebook.thrift.payload.
             test.fixtures.refs.MyField _fbthriftVar0 =
                 this.reqSharedConst;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }

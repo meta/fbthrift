@@ -98,26 +98,29 @@ public class LegacyServiceRpcServerHandler
       public int sizeHint() {
         Map<String, List<Integer>> _fbthriftVar0 = (Map<String, List<Integer>>) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.MAP);
         for (Map.Entry<String, List<Integer>> _fbthriftVar1 :
             _fbthriftVar0.entrySet()) {
             {
                 String _fbthriftVar2 =
                     _fbthriftVar1.getKey();
-                _fbthriftSize +=
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                     com.facebook.thrift.util.ThriftSizes.string(
-                        _fbthriftVar2);
+                        _fbthriftVar2));
             }
             {
                 List<Integer> _fbthriftVar2 =
                     _fbthriftVar1.getValue();
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                _fbthriftSize +=
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                     (long) _fbthriftVar2.size()
-                        * com.facebook.thrift.util.ThriftSizes.I32;
+                        * com.facebook.thrift.util.ThriftSizes.I32);
                         }
         }
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };

@@ -518,45 +518,46 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.ENUM;
 
         if (this._abstract != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this._abstract);
+                        this._abstract));
         }
 
         if (this.annotationWithQuote != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.annotationWithQuote);
+                        this.annotationWithQuote));
         }
 
         if (this.class_ != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.class_);
+                        this.class_));
         }
 
         if (this.annotationWithTrailingComma != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.annotationWithTrailingComma);
+                        this.annotationWithTrailingComma));
         }
 
         if (this.emptyAnnotations != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.emptyAnnotations);
+                        this.emptyAnnotations));
         }
 
         {
             List<String> _fbthriftVar0 =
                 this.cppTypeAnnotation;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 _fbthriftSize =
                     com.facebook.thrift.util.ThriftSizes.addSize(
                         _fbthriftSize,
@@ -570,13 +571,15 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
             test.fixtures.basicannotations.MyUnion _fbthriftVar0 =
                 this.myUnion;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }

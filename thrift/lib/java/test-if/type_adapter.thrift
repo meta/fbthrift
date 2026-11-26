@@ -140,6 +140,13 @@ typedef string adaptedString
 
 @thrift.AllowLegacyTypedefUri
 @java.Adapter{
+  adapterClassName = "com.facebook.thrift.adapter.test.MaxBoundStringAdapter",
+  typeClassName = "java.lang.String",
+}
+typedef string maxBoundString
+
+@thrift.AllowLegacyTypedefUri
+@java.Adapter{
   adapterClassName = "com.facebook.thrift.adapter.test.ListToStringTypeAdapter",
   typeClassName = "java.lang.String",
 }
@@ -1100,3 +1107,22 @@ safe permanent client exception AdaptedTestException {
   items = {"java.swift.binary_string": "1"},
 }
 typedef string string_5578
+
+// A struct whose adapted fields report Long.MAX_VALUE bounds: every sum that
+// touches them must saturate instead of wrapping.
+struct MaxBoundHolder {
+  1: maxBoundString first;
+  2: maxBoundString second;
+}
+
+// Two saturated nested structs plus a trailing field: the total stays
+// Long.MAX_VALUE exactly.
+struct MaxBoundParent {
+  1: MaxBoundHolder left;
+  2: MaxBoundHolder right;
+  3: string trailing;
+}
+
+service SaturationService {
+  MaxBoundParent saturate();
+}

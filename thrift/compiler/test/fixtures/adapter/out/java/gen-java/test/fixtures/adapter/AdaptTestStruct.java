@@ -546,38 +546,42 @@ public final class AdaptTestStruct implements com.facebook.thrift.payload.Thrift
             byte[] _fbthriftVar0 =
                 this.custom;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0));
             }
         }
 
         if (this.meta != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.meta);
+                        this.meta));
         }
 
         if (this.indirectionString != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.indirectionString);
+                        this.indirectionString));
         }
 
         if (this.stringData != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringData);
+                        this.stringData));
         }
 
         {
             byte[] _fbthriftVar0 =
                 this.binaryData;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0));
             }
         }
 

@@ -250,15 +250,15 @@ public final class Struct4 implements com.facebook.thrift.payload.ThriftSerializ
                     + com.facebook.thrift.util.ThriftSizes.I32;
 
         if (this.b != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.DOUBLE;
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE);
         }
 
         if (this.c != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.BYTE;
+                    + com.facebook.thrift.util.ThriftSizes.BYTE);
         }
 
         return _fbthriftSize;

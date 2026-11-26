@@ -213,22 +213,24 @@ public final class MyStruct2 implements com.facebook.thrift.payload.ThriftSerial
             test.fixtures.basic_swift_bean.MyStruct1 _fbthriftVar0 =
                 this.myStruct1;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }
 
         if (this.myString != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.myString);
+                        this.myString));
         }
 
         return _fbthriftSize;

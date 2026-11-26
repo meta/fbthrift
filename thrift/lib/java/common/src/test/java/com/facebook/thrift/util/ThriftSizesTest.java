@@ -267,6 +267,7 @@ public class ThriftSizesTest {
     assertEquals(Integer.MAX_VALUE, ThriftSizes.clampToInt(Integer.MAX_VALUE));
     assertEquals(42, ThriftSizes.clampToInt(42));
     assertEquals(-1, ThriftSizes.clampToInt(-1));
+    assertEquals(-1, ThriftSizes.clampToInt(Long.MIN_VALUE));
   }
 
   @Test

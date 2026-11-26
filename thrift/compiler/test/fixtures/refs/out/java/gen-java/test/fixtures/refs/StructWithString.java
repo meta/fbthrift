@@ -334,38 +334,38 @@ public final class StructWithString implements com.facebook.thrift.payload.Thrif
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.defUniqueStringRef != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.defUniqueStringRef);
+                        this.defUniqueStringRef));
         }
 
         if (this.defSharedStringRef != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.defSharedStringRef);
+                        this.defSharedStringRef));
         }
 
         if (this.defSharedStringConstRef != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.defSharedStringConstRef);
+                        this.defSharedStringConstRef));
         }
 
         if (this.uniqueStringRef != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.uniqueStringRef);
+                        this.uniqueStringRef));
         }
 
         if (this.sharedStringRef != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.sharedStringRef);
+                        this.sharedStringRef));
         }
 
         return _fbthriftSize;

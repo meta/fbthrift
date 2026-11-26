@@ -182,8 +182,10 @@ public final class RecursiveStruct implements com.facebook.thrift.payload.Thrift
             List<test.fixtures.refs.RecursiveStruct> _fbthriftVar0 =
                 this.mes;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
                 {
                     long _fbthriftVar1 =
                         com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar0);

@@ -166,10 +166,10 @@ public final class ShouldBeBoxed implements com.facebook.thrift.payload.ThriftSe
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.sessionId != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.sessionId);
+                        this.sessionId));
         }
 
         return _fbthriftSize;

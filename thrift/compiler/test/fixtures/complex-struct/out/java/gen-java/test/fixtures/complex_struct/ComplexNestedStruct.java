@@ -1893,13 +1893,16 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Set<Set<Integer>> _fbthriftVar0 =
                 this.setOfSetOfInt;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.SET);
                 for (Set<Integer> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                    _fbthriftSize +=
-                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.SET);
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 }
             }
         }
@@ -1908,20 +1911,25 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             List<List<List<List<test.fixtures.complex_struct.MyEnum>>>> _fbthriftVar0 =
                 this.listofListOfListOfListOfEnum;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
                 for (List<List<List<test.fixtures.complex_struct.MyEnum>>> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.LIST);
                     for (List<List<test.fixtures.complex_struct.MyEnum>> _fbthriftVar2 :
                         _fbthriftVar1) {
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
                         for (List<test.fixtures.complex_struct.MyEnum> _fbthriftVar3 :
                             _fbthriftVar2) {
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                            _fbthriftSize +=
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.LIST);
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                 (long) _fbthriftVar3.size()
-                                    * com.facebook.thrift.util.ThriftSizes.ENUM;
+                                    * com.facebook.thrift.util.ThriftSizes.ENUM);
                         }
                     }
                 }
@@ -1932,11 +1940,14 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             List<List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar0 =
                 this.listOfListOfMyStruct;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
                 for (List<test.fixtures.complex_struct.MyStruct> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.LIST);
                     {
                         long _fbthriftVar2 =
                             com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar1);
@@ -1955,17 +1966,21 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Set<List<List<Long>>> _fbthriftVar0 =
                 this.setOfListOfListOfLong;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.SET);
                 for (List<List<Long>> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.LIST);
                     for (List<Long> _fbthriftVar2 :
                         _fbthriftVar1) {
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I64;
+                                * com.facebook.thrift.util.ThriftSizes.I64);
                     }
                 }
             }
@@ -1975,17 +1990,21 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Set<Set<Set<Long>>> _fbthriftVar0 =
                 this.setOfSetOfsetOfLong;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.SET);
                 for (Set<Set<Long>> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.SET);
                     for (Set<Long> _fbthriftVar2 :
                         _fbthriftVar1) {
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I64;
+                                * com.facebook.thrift.util.ThriftSizes.I64);
                     }
                 }
             }
@@ -1995,19 +2014,23 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Integer, List<List<test.fixtures.complex_struct.MyStruct>>> _fbthriftVar0 =
                 this.mapStructListOfListOfLong;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<Integer, List<List<test.fixtures.complex_struct.MyStruct>>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         List<List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
                         for (List<test.fixtures.complex_struct.MyStruct> _fbthriftVar3 :
                             _fbthriftVar2) {
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.LIST);
                             {
                                 long _fbthriftVar4 =
                                     com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar3);
@@ -2028,10 +2051,12 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<test.fixtures.complex_struct.MyStruct, Integer> _fbthriftVar0 =
                 this.mKeyStructValInt;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<test.fixtures.complex_struct.MyStruct, Integer> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
@@ -2042,7 +2067,8 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
                             if (_fbthriftSize2 < 0) {
                                 return -1;
                             }
-                            _fbthriftSize += _fbthriftSize2;
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                _fbthriftSize2);
                         }
                     }
                 }
@@ -2053,15 +2079,18 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             List<Map<Integer, Integer>> _fbthriftVar0 =
                 this.listOfMapKeyIntValInt;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
                 for (Map<Integer, Integer> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                    _fbthriftSize +=
-                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32;
-                    _fbthriftSize +=
-                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.MAP);
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32);
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 }
             }
         }
@@ -2070,24 +2099,28 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             List<Map<String, List<test.fixtures.complex_struct.MyStruct>>> _fbthriftVar0 =
                 this.listOfMapKeyStrValList;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.LIST);
                 for (Map<String, List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar1 :
                     _fbthriftVar0) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.MAP);
                     for (Map.Entry<String, List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar2 :
                         _fbthriftVar1.entrySet()) {
                         {
                             String _fbthriftVar3 =
                                 _fbthriftVar2.getKey();
-                            _fbthriftSize +=
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                 com.facebook.thrift.util.ThriftSizes.string(
-                                    _fbthriftVar3);
+                                    _fbthriftVar3));
                         }
                         {
                             List<test.fixtures.complex_struct.MyStruct> _fbthriftVar3 =
                                 _fbthriftVar2.getValue();
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.LIST);
                             {
                                 long _fbthriftVar4 =
                                     com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar3);
@@ -2108,19 +2141,22 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Set<Integer>, Long> _fbthriftVar0 =
                 this.mapKeySetValLong;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64);
                 for (Map.Entry<Set<Integer>, Long> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Set<Integer> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I32;
+                                * com.facebook.thrift.util.ThriftSizes.I32);
                     }
                 }
             }
@@ -2130,10 +2166,12 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<List<String>, Integer> _fbthriftVar0 =
                 this.mapKeyListValLong;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<List<String>, Integer> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
@@ -2154,43 +2192,47 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Map<Integer, String>, Map<Integer, String>> _fbthriftVar0 =
                 this.mapKeyMapValMap;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<Map<Integer, String>, Map<Integer, String>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Map<Integer, String> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.MAP);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I32;
+                                * com.facebook.thrift.util.ThriftSizes.I32);
                         for (Map.Entry<Integer, String> _fbthriftVar3 :
                             _fbthriftVar2.entrySet()) {
                             {
                                 String _fbthriftVar4 =
                                     _fbthriftVar3.getValue();
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar4);
+                                        _fbthriftVar4));
                             }
                         }
                     }
                     {
                         Map<Integer, String> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.MAP);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I32;
+                                * com.facebook.thrift.util.ThriftSizes.I32);
                         for (Map.Entry<Integer, String> _fbthriftVar3 :
                             _fbthriftVar2.entrySet()) {
                             {
                                 String _fbthriftVar4 =
                                     _fbthriftVar3.getValue();
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar4);
+                                        _fbthriftVar4));
                             }
                         }
                     }
@@ -2202,32 +2244,38 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Set<List<Integer>>, Map<List<Set<String>>, String>> _fbthriftVar0 =
                 this.mapKeySetValMap;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<Set<List<Integer>>, Map<List<Set<String>>, String>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Set<List<Integer>> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
                         for (List<Integer> _fbthriftVar3 :
                             _fbthriftVar2) {
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                            _fbthriftSize +=
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.LIST);
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                 (long) _fbthriftVar3.size()
-                                    * com.facebook.thrift.util.ThriftSizes.I32;
+                                    * com.facebook.thrift.util.ThriftSizes.I32);
                         }
                     }
                     {
                         Map<List<Set<String>>, String> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.MAP);
                         for (Map.Entry<List<Set<String>>, String> _fbthriftVar3 :
                             _fbthriftVar2.entrySet()) {
                             {
                                 List<Set<String>> _fbthriftVar4 =
                                     _fbthriftVar3.getKey();
-                                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                    com.facebook.thrift.util.ThriftSizes.LIST);
                                 for (Set<String> _fbthriftVar5 :
                                     _fbthriftVar4) {
                                     _fbthriftSize =
@@ -2241,9 +2289,9 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
                             {
                                 String _fbthriftVar4 =
                                     _fbthriftVar3.getValue();
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar4);
+                                        _fbthriftVar4));
                             }
                         }
                     }
@@ -2255,58 +2303,63 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Map<Map<Integer, String>, String>, Map<Integer, String>> _fbthriftVar0 =
                 this.nestedMaps;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<Map<Map<Integer, String>, String>, Map<Integer, String>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Map<Map<Integer, String>, String> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.MAP);
                         for (Map.Entry<Map<Integer, String>, String> _fbthriftVar3 :
                             _fbthriftVar2.entrySet()) {
                             {
                                 Map<Integer, String> _fbthriftVar4 =
                                     _fbthriftVar3.getKey();
-                                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                    com.facebook.thrift.util.ThriftSizes.MAP);
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     (long) _fbthriftVar4.size()
-                                        * com.facebook.thrift.util.ThriftSizes.I32;
+                                        * com.facebook.thrift.util.ThriftSizes.I32);
                                 for (Map.Entry<Integer, String> _fbthriftVar5 :
                                     _fbthriftVar4.entrySet()) {
                                     {
                                         String _fbthriftVar6 =
                                             _fbthriftVar5.getValue();
-                                        _fbthriftSize +=
+                                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                             com.facebook.thrift.util.ThriftSizes.string(
-                                                _fbthriftVar6);
+                                                _fbthriftVar6));
                                     }
                                 }
                             }
                             {
                                 String _fbthriftVar4 =
                                     _fbthriftVar3.getValue();
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar4);
+                                        _fbthriftVar4));
                             }
                         }
                     }
                     {
                         Map<Integer, String> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.MAP);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I32;
+                                * com.facebook.thrift.util.ThriftSizes.I32);
                         for (Map.Entry<Integer, String> _fbthriftVar3 :
                             _fbthriftVar2.entrySet()) {
                             {
                                 String _fbthriftVar4 =
                                     _fbthriftVar3.getValue();
-                                _fbthriftSize +=
+                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                     com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar4);
+                                        _fbthriftVar4));
                             }
                         }
                     }
@@ -2318,16 +2371,19 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Integer, List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar0 =
                 this.mapKeyIntValList;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<Integer, List<test.fixtures.complex_struct.MyStruct>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         List<test.fixtures.complex_struct.MyStruct> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
                         {
                             long _fbthriftVar3 =
                                 com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar2);
@@ -2347,19 +2403,22 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Integer, Set<Boolean>> _fbthriftVar0 =
                 this.mapKeyIntValSet;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<Integer, Set<Boolean>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Set<Boolean> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.BOOL;
+                                * com.facebook.thrift.util.ThriftSizes.BOOL);
                     }
                 }
             }
@@ -2369,19 +2428,22 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<Set<Boolean>, test.fixtures.complex_struct.MyEnum> _fbthriftVar0 =
                 this.mapKeySetValInt;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.ENUM;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.ENUM);
                 for (Map.Entry<Set<Boolean>, test.fixtures.complex_struct.MyEnum> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         Set<Boolean> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.BOOL;
+                                * com.facebook.thrift.util.ThriftSizes.BOOL);
                     }
                 }
             }
@@ -2391,36 +2453,41 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
             Map<List<Integer>, Set<Map<Double, String>>> _fbthriftVar0 =
                 this.mapKeyListValSet;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<List<Integer>, Set<Map<Double, String>>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         List<Integer> _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             (long) _fbthriftVar2.size()
-                                * com.facebook.thrift.util.ThriftSizes.I32;
+                                * com.facebook.thrift.util.ThriftSizes.I32);
                     }
                     {
                         Set<Map<Double, String>> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.SET);
                         for (Map<Double, String> _fbthriftVar3 :
                             _fbthriftVar2) {
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                            _fbthriftSize +=
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.MAP);
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                 (long) _fbthriftVar3.size()
-                                    * com.facebook.thrift.util.ThriftSizes.DOUBLE;
+                                    * com.facebook.thrift.util.ThriftSizes.DOUBLE);
                             for (Map.Entry<Double, String> _fbthriftVar4 :
                                 _fbthriftVar3.entrySet()) {
                                 {
                                     String _fbthriftVar5 =
                                         _fbthriftVar4.getValue();
-                                    _fbthriftSize +=
+                                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                         com.facebook.thrift.util.ThriftSizes.string(
-                                            _fbthriftVar5);
+                                            _fbthriftVar5));
                                 }
                             }
                         }

@@ -213,13 +213,15 @@ public final class StructWithInternBox implements com.facebook.thrift.payload.Th
             test.fixtures.refs.MyField _fbthriftVar0 =
                 this.field2;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 {
                     long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                     if (_fbthriftSize0 < 0) {
                         return -1;
                     }
-                    _fbthriftSize += _fbthriftSize0;
+                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                        _fbthriftSize0);
                 }
             }
         }

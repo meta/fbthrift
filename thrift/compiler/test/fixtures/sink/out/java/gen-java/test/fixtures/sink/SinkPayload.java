@@ -166,10 +166,10 @@ public final class SinkPayload implements com.facebook.thrift.payload.ThriftSeri
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.content != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.content);
+                        this.content));
         }
 
         return _fbthriftSize;

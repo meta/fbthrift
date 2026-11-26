@@ -166,10 +166,10 @@ public final class FieldsInjectedToEmptyStruct implements com.facebook.thrift.pa
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.injectedField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.injectedField);
+                        this.injectedField));
         }
 
         return _fbthriftSize;

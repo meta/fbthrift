@@ -336,30 +336,30 @@ public final class Vehicle implements com.facebook.thrift.payload.ThriftSerializ
                     + test.fixtures.optionals.Color.serializedSizeBound();
 
         if (this.licensePlate != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.licensePlate);
+                        this.licensePlate));
         }
 
         if (this.description != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.description);
+                        this.description));
         }
 
         if (this.name != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.name);
+                        this.name));
         }
 
         if (this.hasAC != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.BOOL;
+                    + com.facebook.thrift.util.ThriftSizes.BOOL);
         }
 
         return _fbthriftSize;

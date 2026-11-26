@@ -352,7 +352,9 @@ public final class RpcPayloadUtil {
           return -1;
         }
 
-        return ThriftSizes.clampToInt(ThriftSizes.FIELD + payloadSize + ThriftSizes.FIELD_STOP);
+        return ThriftSizes.clampToInt(
+            ThriftSizes.addSize(
+                ThriftSizes.addSize(ThriftSizes.FIELD, payloadSize), ThriftSizes.FIELD_STOP));
       }
     };
   }

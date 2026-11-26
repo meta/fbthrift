@@ -325,29 +325,32 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
         switch (this.id) {
 
         case _STRINGVALUE: {
-            String
-                _fbthriftVar0 =
+            String _fbthriftVar0 =
                 (String) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
             break;
         }
 
         case _INTVALUE: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 
         case _DOUBLEVALUE: {
-            double
-                _fbthriftVar0 =
+            double _fbthriftVar0 =
                 (double) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.DOUBLE);
             break;
         }
 

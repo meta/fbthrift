@@ -275,10 +275,10 @@ public final class TerseAdaptedFields implements com.facebook.thrift.payload.Thr
         java.util.Objects.requireNonNull(
             this.stringField, "stringField must not be null");
         if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.stringField)) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringField);
+                        this.stringField));
         }
 
         {
@@ -287,10 +287,12 @@ public final class TerseAdaptedFields implements com.facebook.thrift.payload.Thr
             java.util.Objects.requireNonNull(
                 _fbthriftVar0, "setField must not be null");
             if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.SET);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
             }
         }
 

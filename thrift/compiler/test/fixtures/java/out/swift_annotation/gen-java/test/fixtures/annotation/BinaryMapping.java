@@ -273,23 +273,25 @@ public final class BinaryMapping implements com.facebook.thrift.payload.ThriftSe
             Map<String, byte[]> _fbthriftVar0 =
                 this.binaryMap;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<String, byte[]> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         String _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.string(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                     {
                         byte[] _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.binary(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                 }
             }
@@ -299,23 +301,25 @@ public final class BinaryMapping implements com.facebook.thrift.payload.ThriftSe
             Map<String, byte[]> _fbthriftVar0 =
                 this.regularBinary;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<String, byte[]> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         String _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.string(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                     {
                         byte[] _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.binary(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                 }
             }

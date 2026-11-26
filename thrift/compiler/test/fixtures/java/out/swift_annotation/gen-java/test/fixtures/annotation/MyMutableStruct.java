@@ -346,17 +346,18 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
                     + com.facebook.thrift.util.ThriftSizes.I64;
 
         if (this.stringField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringField);
+                        this.stringField));
         }
 
         {
             List<String> _fbthriftVar0 =
                 this.stringList;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
                 _fbthriftSize =
                     com.facebook.thrift.util.ThriftSizes.addSize(
                         _fbthriftSize,
@@ -370,23 +371,25 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
             Map<String, String> _fbthriftVar0 =
                 this.stringMap;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
                 for (Map.Entry<String, String> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         String _fbthriftVar2 =
                             _fbthriftVar1.getKey();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.string(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                     {
                         String _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize +=
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                             com.facebook.thrift.util.ThriftSizes.string(
-                                _fbthriftVar2);
+                                _fbthriftVar2));
                     }
                 }
             }

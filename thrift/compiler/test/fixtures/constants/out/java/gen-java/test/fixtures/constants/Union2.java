@@ -377,49 +377,53 @@ public final class Union2 implements com.facebook.thrift.payload.ThriftSerializa
         switch (this.id) {
 
         case _I: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 
         case _D: {
-            double
-                _fbthriftVar0 =
+            double _fbthriftVar0 =
                 (double) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.DOUBLE);
             break;
         }
 
         case _S: {
-            test.fixtures.constants.Struct1
-                _fbthriftVar0 =
+            test.fixtures.constants.Struct1 _fbthriftVar0 =
                 (test.fixtures.constants.Struct1) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
             {
                 long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                 if (_fbthriftSize0 < 0) {
                     return -1;
                 }
-                _fbthriftSize += _fbthriftSize0;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    _fbthriftSize0);
             }
             break;
         }
 
         case _U: {
-            test.fixtures.constants.Union1
-                _fbthriftVar0 =
+            test.fixtures.constants.Union1 _fbthriftVar0 =
                 (test.fixtures.constants.Union1) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
             {
                 long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                 if (_fbthriftSize0 < 0) {
                     return -1;
                 }
-                _fbthriftSize += _fbthriftSize0;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    _fbthriftSize0);
             }
             break;
         }

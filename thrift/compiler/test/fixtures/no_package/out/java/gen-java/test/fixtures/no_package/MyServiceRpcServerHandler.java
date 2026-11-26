@@ -228,8 +228,10 @@ public class MyServiceRpcServerHandler
       public int sizeHint() {
         String _fbthriftVar0 = (String) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
@@ -729,8 +731,10 @@ public class MyServiceRpcServerHandler
       public int sizeHint() {
         String _fbthriftVar0 = (String) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
@@ -983,10 +987,12 @@ public class MyServiceRpcServerHandler
       public int sizeHint() {
         Set<Float> _fbthriftVar0 = (Set<Float>) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-        _fbthriftSize +=
-            (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.FLOAT;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.SET);
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.FLOAT);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };

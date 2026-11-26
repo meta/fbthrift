@@ -85,8 +85,10 @@ public class DbMixedStackArgumentsRpcServerHandler
       public int sizeHint() {
         byte[] _fbthriftVar0 = (byte[]) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0.length);
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0.length));
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
@@ -214,8 +216,10 @@ public class DbMixedStackArgumentsRpcServerHandler
       public int sizeHint() {
         byte[] _fbthriftVar0 = (byte[]) _r;
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0.length);
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0.length));
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };

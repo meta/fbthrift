@@ -166,10 +166,10 @@ public final class A implements com.facebook.thrift.payload.ThriftSerializable {
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.a != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.a);
+                        this.a));
         }
 
         return _fbthriftSize;

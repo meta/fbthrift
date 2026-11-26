@@ -33,6 +33,8 @@ import com.facebook.swift.service.ContextChain;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.ThriftSerializable;
+import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.test.rocket.TestServerException;
@@ -362,5 +364,31 @@ public class RpcPayloadUtilTest {
         };
     return new ContextChain(
         Collections.singletonList(handler), "Svc.method", new NettyNiftyRequestContext(null, null));
+  }
+
+  @Test
+  public void saturatedDeclaredExceptionWriterReportsMaxHint() {
+    Writer writer =
+        declaredExceptionWriter(
+            new SaturatedException("boom"), recordingChain(new ArrayList<>()), 7);
+
+    int hint = writer.sizeHint();
+
+    assertEquals(Integer.MAX_VALUE, hint);
+  }
+
+  private static final class SaturatedException extends RuntimeException
+      implements ThriftSerializable {
+    SaturatedException(String message) {
+      super(message);
+    }
+
+    @Override
+    public void write0(TProtocol protocol) {}
+
+    @Override
+    public long serializedSize() {
+      return Long.MAX_VALUE;
+    }
   }
 }

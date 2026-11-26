@@ -218,11 +218,12 @@ public final class UnionToBeRenamed implements com.facebook.thrift.payload.Thrif
         switch (this.id) {
 
         case _RESERVED_FIELD: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 

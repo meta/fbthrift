@@ -277,21 +277,22 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
         switch (this.id) {
 
         case _INTLISTVALUE: {
-            List<Long>
-                _fbthriftVar0 =
+            List<Long> _fbthriftVar0 =
                 (List<Long>) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-            _fbthriftSize +=
-                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.LIST);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64);
             break;
         }
 
         case _STRINGLISTVALUE: {
-            List<String>
-                _fbthriftVar0 =
+            List<String> _fbthriftVar0 =
                 (List<String>) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
             _fbthriftSize =
                 com.facebook.thrift.util.ThriftSizes.addSize(
                     _fbthriftSize,

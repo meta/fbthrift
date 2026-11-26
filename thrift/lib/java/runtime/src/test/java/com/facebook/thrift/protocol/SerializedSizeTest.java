@@ -50,6 +50,8 @@ import com.facebook.thrift.test.adapter.AdapterHookTestStruct;
 import com.facebook.thrift.test.adapter.DoubleAdaptedProbe;
 import com.facebook.thrift.test.adapter.InnerException;
 import com.facebook.thrift.test.adapter.InnerUnion;
+import com.facebook.thrift.test.adapter.MaxBoundHolder;
+import com.facebook.thrift.test.adapter.MaxBoundParent;
 import com.facebook.thrift.test.adapter.NullToIntProbe;
 import com.facebook.thrift.test.adapter.TestEnum;
 import com.facebook.thrift.test.cross.CrossLeaf;
@@ -709,6 +711,23 @@ public class SerializedSizeTest {
     assertTrue(size > 0);
 
     assertSize("double-adapted-probe", fresh);
+  }
+
+  @Test
+  public void testSaturatedSumsStayMax() throws Exception {
+    MaxBoundHolder holder = new MaxBoundHolder.Builder().setFirst("a").setSecond("b").build();
+    Supplier<ThriftSerializable> fresh =
+        () ->
+            new MaxBoundParent.Builder()
+                .setLeft(holder)
+                .setRight(holder)
+                .setTrailing("tail")
+                .build();
+
+    long size = fresh.get().serializedSize();
+
+    assertEquals(Long.MAX_VALUE, size);
+    assertSizeAllowingOvercount("saturated-parent", fresh);
   }
 
   @Test

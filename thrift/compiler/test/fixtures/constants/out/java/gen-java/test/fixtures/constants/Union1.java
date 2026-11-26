@@ -265,20 +265,22 @@ public final class Union1 implements com.facebook.thrift.payload.ThriftSerializa
         switch (this.id) {
 
         case _I: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 
         case _D: {
-            double
-                _fbthriftVar0 =
+            double _fbthriftVar0 =
                 (double) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.DOUBLE);
             break;
         }
 

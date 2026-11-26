@@ -208,17 +208,17 @@ public final class FieldsInjectedToStruct implements com.facebook.thrift.payload
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.stringField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringField);
+                        this.stringField));
         }
 
         if (this.injectedField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.injectedField);
+                        this.injectedField));
         }
 
         return _fbthriftSize;

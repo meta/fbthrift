@@ -292,10 +292,10 @@ public final class MyStruct1 implements com.facebook.thrift.payload.ThriftSerial
                     + test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
 
         if (this.myStringField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.myStringField);
+                        this.myStringField));
         }
 
         return _fbthriftSize;

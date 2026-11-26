@@ -252,9 +252,9 @@ public final class StructWithRef implements com.facebook.thrift.payload.ThriftSe
                     + test.fixtures.refs.Empty.serializedSizeBound());
 
         if (this.optField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + test.fixtures.refs.Empty.serializedSizeBound();
+                    + test.fixtures.refs.Empty.serializedSizeBound());
         }
 
         return _fbthriftSize;

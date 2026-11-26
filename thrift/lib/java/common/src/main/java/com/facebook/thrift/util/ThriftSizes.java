@@ -175,6 +175,10 @@ public final class ThriftSizes {
 
   /** Clamps an accumulated size into an {@code int} hint, saturating past {@code MAX_VALUE}. */
   public static int clampToInt(long size) {
+    if (size < 0) {
+      return -1;
+    }
+
     return size > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) size;
   }
 

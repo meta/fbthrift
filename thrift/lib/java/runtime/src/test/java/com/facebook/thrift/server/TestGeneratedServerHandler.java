@@ -18,6 +18,7 @@ package com.facebook.thrift.server;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.facebook.swift.service.ThriftServerConfig;
@@ -40,6 +41,10 @@ import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTBinaryProtocol;
 import com.facebook.thrift.protocol.ByteBufTCompactProtocol;
+import com.facebook.thrift.test.adapter.MaxBoundHolder;
+import com.facebook.thrift.test.adapter.MaxBoundParent;
+import com.facebook.thrift.test.adapter.SaturationService;
+import com.facebook.thrift.test.adapter.SaturationServiceRpcServerHandler;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -198,6 +203,22 @@ public class TestGeneratedServerHandler {
             .block();
 
     assertWriterSize("ping-response", payload.getDataWriter());
+  }
+
+  @Test
+  public void testSaturatedResponseWriterSizeHint() throws Exception {
+    MaxBoundHolder holder = new MaxBoundHolder.Builder().setFirst("a").setSecond("b").build();
+    MaxBoundParent response =
+        new MaxBoundParent.Builder().setLeft(holder).setRight(holder).setTrailing("tail").build();
+    SaturationService.Reactive delegate = Mockito.mock(SaturationService.Reactive.class);
+    Mockito.when(delegate.saturate()).thenReturn(Mono.just(response));
+    SaturationServiceRpcServerHandler handler =
+        new SaturationServiceRpcServerHandler(delegate, Collections.emptyList());
+
+    ServerResponsePayload payload =
+        handler.singleRequestSingleResponse(requestPayload("saturate", p -> {})).block();
+
+    assertEquals(Integer.MAX_VALUE, payload.getDataWriter().sizeHint());
   }
 
   @Test

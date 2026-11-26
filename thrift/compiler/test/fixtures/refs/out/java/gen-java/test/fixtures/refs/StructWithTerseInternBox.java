@@ -227,13 +227,15 @@ public final class StructWithTerseInternBox implements com.facebook.thrift.paylo
                 this.field2;
             java.util.Objects.requireNonNull(
                 _fbthriftVar0, "field2 must not be null");
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
             {
                 long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                 if (_fbthriftSize0 < 0) {
                     return -1;
                 }
-                _fbthriftSize += _fbthriftSize0;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    _fbthriftSize0);
             }
         }
 

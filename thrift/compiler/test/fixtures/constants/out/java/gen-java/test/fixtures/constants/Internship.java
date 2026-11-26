@@ -334,29 +334,29 @@ public final class Internship implements com.facebook.thrift.payload.ThriftSeria
                     + com.facebook.thrift.util.ThriftSizes.I32;
 
         if (this.title != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.title);
+                        this.title));
         }
 
         if (this.employer != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+                    + com.facebook.thrift.util.ThriftSizes.ENUM);
         }
 
         if (this.compensation != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.DOUBLE;
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE);
         }
 
         if (this.school != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.school);
+                        this.school));
         }
 
         return _fbthriftSize;

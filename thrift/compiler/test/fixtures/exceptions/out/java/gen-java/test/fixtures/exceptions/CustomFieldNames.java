@@ -213,17 +213,17 @@ public final class CustomFieldNames extends org.apache.thrift.TBaseException imp
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.errorMessage != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.errorMessage);
+                        this.errorMessage));
         }
 
         if (this.internalGreatMessage != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.internalGreatMessage);
+                        this.internalGreatMessage));
         }
 
         return _fbthriftSize;

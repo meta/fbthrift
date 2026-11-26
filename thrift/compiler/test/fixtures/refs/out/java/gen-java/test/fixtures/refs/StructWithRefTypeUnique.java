@@ -252,9 +252,9 @@ public final class StructWithRefTypeUnique implements com.facebook.thrift.payloa
                     + test.fixtures.refs.Empty.serializedSizeBound());
 
         if (this.optField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + test.fixtures.refs.Empty.serializedSizeBound();
+                    + test.fixtures.refs.Empty.serializedSizeBound());
         }
 
         return _fbthriftSize;

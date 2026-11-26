@@ -211,10 +211,10 @@ public final class MyAnnotation implements com.facebook.thrift.payload.ThriftSer
                     + com.facebook.thrift.util.ThriftSizes.ENUM;
 
         if (this.signature != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.signature);
+                        this.signature));
         }
 
         return _fbthriftSize;

@@ -166,10 +166,10 @@ public final class Fiery extends org.apache.thrift.TBaseException implements com
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.message != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.message);
+                        this.message));
         }
 
         return _fbthriftSize;

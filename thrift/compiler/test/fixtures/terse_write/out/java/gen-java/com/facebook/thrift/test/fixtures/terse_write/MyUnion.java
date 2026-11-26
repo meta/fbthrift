@@ -929,141 +929,155 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         switch (this.id) {
 
         case _BOOL_FIELD: {
-            boolean
-                _fbthriftVar0 =
+            boolean _fbthriftVar0 =
                 (boolean) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.BOOL;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.BOOL);
             break;
         }
 
         case _BYTE_FIELD: {
-            byte
-                _fbthriftVar0 =
+            byte _fbthriftVar0 =
                 (byte) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.BYTE;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.BYTE);
             break;
         }
 
         case _SHORT_FIELD: {
-            short
-                _fbthriftVar0 =
+            short _fbthriftVar0 =
                 (short) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I16;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I16);
             break;
         }
 
         case _INT_FIELD: {
-            int
-                _fbthriftVar0 =
+            int _fbthriftVar0 =
                 (int) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I32);
             break;
         }
 
         case _LONG_FIELD: {
-            long
-                _fbthriftVar0 =
+            long _fbthriftVar0 =
                 (long) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I64);
             break;
         }
 
         case _FLOAT_FIELD: {
-            float
-                _fbthriftVar0 =
+            float _fbthriftVar0 =
                 (float) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FLOAT;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FLOAT);
             break;
         }
 
         case _DOUBLE_FIELD: {
-            double
-                _fbthriftVar0 =
+            double _fbthriftVar0 =
                 (double) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.DOUBLE);
             break;
         }
 
         case _STRING_FIELD: {
-            String
-                _fbthriftVar0 =
+            String _fbthriftVar0 =
                 (String) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0));
             break;
         }
 
         case _BINARY_FIELD: {
-            byte[]
-                _fbthriftVar0 =
+            byte[] _fbthriftVar0 =
                 (byte[]) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0));
             break;
         }
 
         case _ENUM_FIELD: {
-            com.facebook.thrift.test.fixtures.terse_write.MyEnum
-                _fbthriftVar0 =
+            com.facebook.thrift.test.fixtures.terse_write.MyEnum _fbthriftVar0 =
                 (com.facebook.thrift.test.fixtures.terse_write.MyEnum) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.ENUM);
             break;
         }
 
         case _LIST_FIELD: {
-            List<Short>
-                _fbthriftVar0 =
+            List<Short> _fbthriftVar0 =
                 (List<Short>) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-            _fbthriftSize +=
-                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.LIST);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16);
             break;
         }
 
         case _SET_FIELD: {
-            Set<Short>
-                _fbthriftVar0 =
+            Set<Short> _fbthriftVar0 =
                 (Set<Short>) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-            _fbthriftSize +=
-                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.SET);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16);
             break;
         }
 
         case _MAP_FIELD: {
-            Map<Short, Short>
-                _fbthriftVar0 =
+            Map<Short, Short> _fbthriftVar0 =
                 (Map<Short, Short>) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-            _fbthriftSize +=
-                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
-            _fbthriftSize +=
-                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.MAP);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16);
             break;
         }
 
         case _STRUCT_FIELD: {
-            com.facebook.thrift.test.fixtures.terse_write.MyStruct
-                _fbthriftVar0 =
+            com.facebook.thrift.test.fixtures.terse_write.MyStruct _fbthriftVar0 =
                 (com.facebook.thrift.test.fixtures.terse_write.MyStruct) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
             {
                 long _fbthriftSize0 = _fbthriftVar0.serializedSize();
                 if (_fbthriftSize0 < 0) {
                     return -1;
                 }
-                _fbthriftSize += _fbthriftSize0;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    _fbthriftSize0);
             }
             break;
         }

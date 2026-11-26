@@ -169,10 +169,10 @@ public final class Config implements com.facebook.thrift.payload.ThriftSerializa
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.path != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.path);
+                        this.path));
         }
 
         return _fbthriftSize;

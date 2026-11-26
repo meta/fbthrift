@@ -274,20 +274,22 @@ public final class AdaptTestUnion implements com.facebook.thrift.payload.ThriftS
         switch (this.id) {
 
         case _DELAY: {
-            long
-                _fbthriftVar0 =
+            long _fbthriftVar0 =
                 (long) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.I64);
             break;
         }
 
         case _CUSTOM: {
-            byte[]
-                _fbthriftVar0 =
+            byte[] _fbthriftVar0 =
                 (byte[]) this.value;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.FIELD);
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0));
             break;
         }
 

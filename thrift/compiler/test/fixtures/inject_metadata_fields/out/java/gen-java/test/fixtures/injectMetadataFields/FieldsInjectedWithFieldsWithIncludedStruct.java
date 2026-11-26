@@ -210,10 +210,10 @@ public final class FieldsInjectedWithFieldsWithIncludedStruct implements com.fac
                     + test.fixtures.injectMetadataFields.InjectedField.serializedSizeBound();
 
         if (this.stringField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringField);
+                        this.stringField));
         }
 
         return _fbthriftSize;

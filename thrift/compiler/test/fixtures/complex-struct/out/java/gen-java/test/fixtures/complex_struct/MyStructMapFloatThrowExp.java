@@ -268,22 +268,26 @@ public final class MyStructMapFloatThrowExp implements com.facebook.thrift.paylo
             Map<Integer, List<List<Float>>> _fbthriftVar0 =
                 this.mapListOfFloats;
             if (_fbthriftVar0 != null) {
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
-                _fbthriftSize +=
-                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.MAP);
+                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32);
                 for (Map.Entry<Integer, List<List<Float>>> _fbthriftVar1 :
                     _fbthriftVar0.entrySet()) {
                     {
                         List<List<Float>> _fbthriftVar2 =
                             _fbthriftVar1.getValue();
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.LIST);
                         for (List<Float> _fbthriftVar3 :
                             _fbthriftVar2) {
-                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
-                            _fbthriftSize +=
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                                com.facebook.thrift.util.ThriftSizes.LIST);
+                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                                 (long) _fbthriftVar3.size()
-                                    * com.facebook.thrift.util.ThriftSizes.FLOAT;
+                                    * com.facebook.thrift.util.ThriftSizes.FLOAT);
                         }
                     }
                 }

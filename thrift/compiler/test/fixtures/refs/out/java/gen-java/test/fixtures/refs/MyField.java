@@ -498,36 +498,36 @@ public final class MyField implements com.facebook.thrift.payload.ThriftSerializ
                     + com.facebook.thrift.util.ThriftSizes.ENUM);
 
         if (this.optValue != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.I64;
+                    + com.facebook.thrift.util.ThriftSizes.I64);
         }
 
         if (this.optEnumValue != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+                    + com.facebook.thrift.util.ThriftSizes.ENUM);
         }
 
         if (this.optStrValue != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.optStrValue);
+                        this.optStrValue));
         }
 
         if (this.strValue != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.strValue);
+                        this.strValue));
         }
 
         if (this.reqStrValue != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.reqStrValue);
+                        this.reqStrValue));
         }
 
         return _fbthriftSize;

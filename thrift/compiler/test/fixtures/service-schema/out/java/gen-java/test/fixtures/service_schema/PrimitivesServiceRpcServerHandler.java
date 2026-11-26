@@ -257,9 +257,10 @@ public class PrimitivesServiceRpcServerHandler
           return -1;
         }
         return com.facebook.thrift.util.ThriftSizes.clampToInt(
-            com.facebook.thrift.util.ThriftSizes.FIELD
-                + _exceptionSize
-                + com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
+            com.facebook.thrift.util.ThriftSizes.addSize(
+                com.facebook.thrift.util.ThriftSizes.addSize(
+                    com.facebook.thrift.util.ThriftSizes.FIELD, _exceptionSize),
+                com.facebook.thrift.util.ThriftSizes.FIELD_STOP));
       }
     };
   }

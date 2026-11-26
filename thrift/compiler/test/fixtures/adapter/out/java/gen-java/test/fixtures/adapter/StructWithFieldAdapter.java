@@ -296,14 +296,14 @@ public final class StructWithFieldAdapter implements com.facebook.thrift.payload
                 + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I32);
 
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.I32;
+                    + com.facebook.thrift.util.ThriftSizes.I32);
 
         if (this.optBoxedField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.I32;
+                    + com.facebook.thrift.util.ThriftSizes.I32);
         }
 
         return _fbthriftSize;

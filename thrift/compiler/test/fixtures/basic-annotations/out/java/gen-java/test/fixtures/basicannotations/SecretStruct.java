@@ -210,10 +210,10 @@ public final class SecretStruct implements com.facebook.thrift.payload.ThriftSer
                     + com.facebook.thrift.util.ThriftSizes.I64;
 
         if (this.password != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.password);
+                        this.password));
         }
 
         return _fbthriftSize;

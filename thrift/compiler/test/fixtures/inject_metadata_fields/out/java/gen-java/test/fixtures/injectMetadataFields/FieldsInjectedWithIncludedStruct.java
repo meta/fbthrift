@@ -292,31 +292,31 @@ public final class FieldsInjectedWithIncludedStruct implements com.facebook.thri
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         if (this.stringField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.stringField);
+                        this.stringField));
         }
 
         if (this.injectedField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.injectedField);
+                        this.injectedField));
         }
 
         if (this.injectedStructuredAnnotationField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.injectedStructuredAnnotationField);
+                        this.injectedStructuredAnnotationField));
         }
 
         if (this.injectedUnstructuredAnnotationField != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.injectedUnstructuredAnnotationField);
+                        this.injectedUnstructuredAnnotationField));
         }
 
         return _fbthriftSize;

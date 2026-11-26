@@ -208,10 +208,10 @@ public final class Struct implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.I32;
 
         if (this.second != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.second);
+                        this.second));
         }
 
         return _fbthriftSize;

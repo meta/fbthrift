@@ -250,16 +250,16 @@ public final class Internship implements com.facebook.thrift.payload.ThriftSeria
                     + com.facebook.thrift.util.ThriftSizes.I32;
 
         if (this.title != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.title);
+                        this.title));
         }
 
         if (this.employer != null) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
-                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+                    + com.facebook.thrift.util.ThriftSizes.ENUM);
         }
 
         return _fbthriftSize;

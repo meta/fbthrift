@@ -180,10 +180,10 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
         java.util.Objects.requireNonNull(
             this.msg, "msg must not be null");
         if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.msg)) {
-            _fbthriftSize +=
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.string(
-                        this.msg);
+                        this.msg));
         }
 
         return _fbthriftSize;

@@ -87,9 +87,11 @@ public class AdapterServiceRpcServerHandler
             if (_fbthriftSize0 < 0) {
                 return -1;
             }
-            _fbthriftSize += _fbthriftSize0;
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+                _fbthriftSize0);
         }
-        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
         return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
