@@ -501,6 +501,7 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
       } else {
         out.writeMessageBegin(new TMessage(metadata.getName(), TMessageType.REPLY, sequenceId));
       }
+
       serverResponsePayload.getDataWriter().write(out);
       out.writeMessageEnd();
 
@@ -512,21 +513,24 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
       HeaderOverloadError.stampResponseHeaders(
           responseHeaders, serverResponsePayload.getApplicationException());
 
-      ByteBuf finalBuf = buf;
-      buf = null; // Prevent release in finally
-      return new ThriftFrame(
-          requestFrame.getSequenceId(),
-          finalBuf,
-          responseHeaders,
-          Collections.emptyMap(),
-          requestFrame.getTransport(),
-          requestFrame.getProtocol(),
-          requestFrame.isSupportOutOfOrderResponse(),
-          requestFrame.getTransforms());
+      ThriftFrame response =
+          new ThriftFrame(
+              requestFrame.getSequenceId(),
+              buf,
+              responseHeaders,
+              Collections.emptyMap(),
+              requestFrame.getTransport(),
+              requestFrame.getProtocol(),
+              requestFrame.isSupportOutOfOrderResponse(),
+              requestFrame.getTransforms());
+
+      buf = null;
+
+      return response;
     } catch (Throwable t) {
       throw new RuntimeException("Failed to encode application response", t);
     } finally {
-      if (buf != null) {
+      if (buf != null && buf.refCnt() > 0) {
         ReferenceCountUtil.safeRelease(buf);
       }
     }

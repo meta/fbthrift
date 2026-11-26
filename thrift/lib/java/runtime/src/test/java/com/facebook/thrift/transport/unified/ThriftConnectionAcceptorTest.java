@@ -20,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,6 +39,7 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.NettyUtil;
 import com.facebook.thrift.util.RpcPayloadUtil;
 import com.facebook.thrift.util.TestResponseWriters;
 import com.facebook.thrift.util.TestResponseWriters.CountingAllocator;
@@ -45,13 +49,18 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.util.ResourceLeakDetector;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -1086,6 +1095,137 @@ public class ThriftConnectionAcceptorTest {
     if (encodedRequest.refCnt() > 0) {
       encodedRequest.release();
     }
+  }
+
+  /**
+   * A throwing request-frame transform still releases the allocated response buffer: the frame is
+   * built before the buffer reference clears, so the throw skips no release.
+   */
+  @Test
+  public void testThrowingTransformsReleasesResponseBuffer() throws Exception {
+    List<ByteBuf> allocated = new ArrayList<>();
+    ByteBufAllocator recording = mock(ByteBufAllocator.class, delegatesTo(allocator));
+
+    when(recording.directBuffer())
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buf = Unpooled.directBuffer();
+              allocated.add(buf);
+              return buf;
+            });
+
+    when(recording.directBuffer(anyInt()))
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buf = Unpooled.directBuffer((int) invocation.getArguments()[0]);
+              allocated.add(buf);
+              return buf;
+            });
+
+    when(mockChannel.alloc()).thenReturn(recording);
+
+    ThriftFrame mockFrame = mock(ThriftFrame.class);
+
+    when(mockFrame.getProtocol()).thenReturn(TProtocolType.TBinary);
+    when(mockFrame.getTransforms()).thenThrow(new IllegalStateException("boom"));
+
+    ServerResponsePayload mockResponse = createMockResponsePayload();
+
+    RequestRpcMetadata metadata =
+        new RequestRpcMetadata.Builder()
+            .setName("m")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .build();
+    Method encode =
+        ThriftConnectionAcceptor.class.getDeclaredMethod(
+            "encodeApplicationResponse",
+            Connection.class,
+            ThriftFrame.class,
+            RequestRpcMetadata.class,
+            ServerResponsePayload.class,
+            Map.class,
+            int.class);
+    encode.setAccessible(true);
+
+    try {
+      encode.invoke(null, mockConnection, mockFrame, metadata, mockResponse, new HashMap<>(), 7);
+      fail("encode must propagate the transforms failure");
+    } catch (InvocationTargetException expected) {
+      assertThat(expected.getCause().getMessage())
+          .contains("Failed to encode application response");
+    }
+
+    assertEquals(1, allocated.size());
+    assertEquals(0, allocated.get(0).refCnt());
+  }
+
+  /**
+   * A writer that releases its buffer before throwing leaves refCnt 0: the finally guard skips the
+   * already-released buffer instead of double-releasing it.
+   */
+  @Test
+  public void testReleasedWriterBufferSkipsFinallyRelease() throws Exception {
+    List<ByteBuf> allocated = new ArrayList<>();
+    ByteBufAllocator recording = mock(ByteBufAllocator.class, delegatesTo(allocator));
+
+    when(recording.directBuffer())
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buf = PooledByteBufAllocator.DEFAULT.directBuffer();
+              allocated.add(buf);
+              return buf;
+            });
+
+    when(recording.directBuffer(anyInt()))
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buf =
+                  PooledByteBufAllocator.DEFAULT.directBuffer((int) invocation.getArguments()[0]);
+              allocated.add(buf);
+              return buf;
+            });
+
+    when(mockChannel.alloc()).thenReturn(recording);
+
+    ThriftFrame mockFrame = mock(ThriftFrame.class);
+
+    when(mockFrame.getProtocol()).thenReturn(TProtocolType.TBinary);
+
+    ServerResponsePayload mockResponse = createMockResponsePayload();
+
+    when(mockResponse.getDataWriter())
+        .thenReturn(
+            out -> {
+              NettyUtil.releaseIfByteBufTProtocol(out);
+              throw new TException("boom");
+            });
+
+    RequestRpcMetadata metadata =
+        new RequestRpcMetadata.Builder()
+            .setName("m")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .build();
+    Method encode =
+        ThriftConnectionAcceptor.class.getDeclaredMethod(
+            "encodeApplicationResponse",
+            Connection.class,
+            ThriftFrame.class,
+            RequestRpcMetadata.class,
+            ServerResponsePayload.class,
+            Map.class,
+            int.class);
+    encode.setAccessible(true);
+
+    try {
+      encode.invoke(null, mockConnection, mockFrame, metadata, mockResponse, new HashMap<>(), 7);
+      fail("encode must propagate the writer failure");
+    } catch (InvocationTargetException expected) {
+      assertThat(expected.getCause().getMessage())
+          .contains("Failed to encode application response");
+    }
+
+    assertEquals(1, allocated.size());
+    assertEquals(0, allocated.get(0).refCnt());
   }
 
   /**

@@ -414,7 +414,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
 
       return response;
     } finally {
-      if (buf != null) {
+      if (buf != null && buf.refCnt() > 0) {
         ReferenceCountUtil.safeRelease(buf);
       }
     }
@@ -430,22 +430,34 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       TApplicationException applicationException,
       Map<String, String> responseHeaders) {
     ByteBuf buf = context.alloc().buffer();
-    TProtocol out = protocol.apply(buf);
 
-    out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
-    applicationException.write(out);
-    out.writeMessageEnd();
+    try {
+      TProtocol out = protocol.apply(buf);
 
-    HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
+      out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
+      applicationException.write(out);
+      out.writeMessageEnd();
 
-    return new ThriftFrame(
-        sequenceId,
-        buf,
-        responseHeaders,
-        Collections.emptyMap(),
-        transport,
-        protocol,
-        supportOutOfOrderResponse);
+      HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
+
+      ThriftFrame response =
+          new ThriftFrame(
+              sequenceId,
+              buf,
+              responseHeaders,
+              Collections.emptyMap(),
+              transport,
+              protocol,
+              supportOutOfOrderResponse);
+
+      buf = null;
+
+      return response;
+    } finally {
+      if (buf != null) {
+        ReferenceCountUtil.safeRelease(buf);
+      }
+    }
   }
 
   /*
