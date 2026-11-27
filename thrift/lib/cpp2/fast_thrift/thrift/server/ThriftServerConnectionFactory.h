@@ -29,6 +29,7 @@
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ClientIdentityHook.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 
@@ -96,6 +97,9 @@ struct ThriftServerConnectionFactoryConfig {
   std::shared_ptr<const ExtensionLayout> requestExtensionLayout;
   std::shared_ptr<const ThriftServerMethodMetadataRegistry> methodMetadata;
 
+  // Runs before setup callbacks when the Classic bridge is absent.
+  // The server owns the hook and outlives the connections it builds.
+  const ClientIdentityHook* FOLLY_NULLABLE clientIdentityHook{nullptr};
   bool requiresCachedEkms{false};
 
   // When true, populate each request's ThriftRequestContext with the inbound

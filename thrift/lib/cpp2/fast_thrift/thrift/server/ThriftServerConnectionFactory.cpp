@@ -635,9 +635,8 @@ detail::ThriftServerConnectionFactoryT<Mode>::getConnectionImpl(
   connContext->setPeerAddress(clientAddr);
   // Non-owning. The transport is owned by the transport adapter, which
   // ThriftServerConnection tears down after the pipeline that reads this —
-  // so it outlives every handler holding the context. Security is snapshotted
-  // separately because this is already the post-StopTLS transport when one was
-  // negotiated, and reports nothing about the peer.
+  // so it outlives every handler holding the context. Retain the handshake
+  // certificate independently of the transport lifetime.
   connContext->setTransport(socket.get());
   if (peerSecurity != nullptr) {
     connContext->setPeerCertificate(peerSecurity->peerCertificate);
@@ -843,7 +842,9 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
   }
 
   conn.thriftTransportAdapter = std::make_unique<ThriftServerTransportAdapter>(
-      std::move(rocketConnection));
+      std::move(rocketConnection),
+      connContext.get(),
+      config_.clientIdentityHook);
   ThriftServerTransportAdapter* const transportAdapterPtr =
       conn.thriftTransportAdapter.get();
 

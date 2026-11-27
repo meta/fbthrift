@@ -16,10 +16,14 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerTransportAdapter.h>
 
+#include <exception>
 #include <string_view>
+
+#include <folly/io/async/ssl/OpenSSLTransportCertificate.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/SetupResponseBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ConnectionPayloads.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponseError.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/SetupMessages.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
@@ -27,12 +31,16 @@
 namespace apache::thrift::fast_thrift::thrift::server {
 
 ThriftServerTransportAdapter::ThriftServerTransportAdapter(
-    std::unique_ptr<rocket::server::RocketServerConnection> rocketConn)
+    std::unique_ptr<rocket::server::RocketServerConnection> rocketConn,
+    ThriftConnContext* connection,
+    const ClientIdentityHook* clientIdentityHook)
     : rocketConn_(std::move(rocketConn)) {
   DCHECK(rocketConn_);
   rocketConn_->appAdapter->setRequestHandlers(
-      [this](channel_pipeline::TypeErasedBox&& msg) noexcept {
-        return onTransportRequest(std::move(msg));
+      [this, connection, clientIdentityHook](
+          channel_pipeline::TypeErasedBox&& msg) noexcept {
+        return onTransportRequest(
+            std::move(msg), connection, clientIdentityHook);
       },
       [this](folly::exception_wrapper&& e) noexcept {
         onTransportError(std::move(e));
@@ -76,10 +84,12 @@ void ThriftServerTransportAdapter::onSetupComplete(
 }
 
 channel_pipeline::Result ThriftServerTransportAdapter::onConnectionFrame(
-    rocket::server::RocketRequestMessage&& request) noexcept {
+    rocket::server::RocketRequestMessage&& request,
+    ThriftConnContext* connection,
+    const ClientIdentityHook* clientIdentityHook) noexcept {
   if (request.frame.type() ==
       apache::thrift::fast_thrift::frame::FrameType::SETUP) [[likely]] {
-    return onSetupFrame(std::move(request));
+    return onSetupFrame(std::move(request), connection, clientIdentityHook);
   }
   XLOG_EVERY_MS(WARN, 60000)
       << "dropping unhandled connection frame " << request.frame.typeName();
@@ -87,7 +97,9 @@ channel_pipeline::Result ThriftServerTransportAdapter::onConnectionFrame(
 }
 
 channel_pipeline::Result ThriftServerTransportAdapter::onSetupFrame(
-    rocket::server::RocketRequestMessage&& request) noexcept {
+    rocket::server::RocketRequestMessage&& request,
+    ThriftConnContext* connection,
+    const ClientIdentityHook* clientIdentityHook) noexcept {
   using ErrorCode = apache::thrift::fast_thrift::frame::ErrorCode;
 
   // Latched for the connection: every later request's metadata is decoded with
@@ -99,6 +111,29 @@ channel_pipeline::Result ThriftServerTransportAdapter::onSetupFrame(
   if (!decoded.hasValue()) [[unlikely]] {
     return rejectSetup(
         ErrorCode::INVALID_SETUP, "Could not read the client's SETUP metadata");
+  }
+
+  if (clientIdentityHook != nullptr) {
+    CHECK(connection != nullptr);
+    try {
+      // Cpp2ConnContext calls a per-connection copy. Preserve that contract
+      // for mutable callables and prefer the live transport's X509.
+      const auto hook = *clientIdentityHook;
+      const auto* transport = connection->getTransport();
+      auto liveX509 = folly::OpenSSLTransportCertificate::tryExtractX509(
+          connection->getTransportPeerCertificate());
+      connection->adoptPeerIdentities(hook(
+          transport,
+          liveX509 ? liveX509.get()
+                   : const_cast<X509*>(connection->getCachedPeerCertificate()),
+          connection->getPeerAddress()));
+    } catch (...) {
+      return rejectSetup(
+          ErrorCode::REJECTED_SETUP,
+          folly::exceptionStr(
+              folly::exception_wrapper(std::current_exception()))
+              .toStdString());
+    }
   }
 
   ThriftServerRequestMessage message;

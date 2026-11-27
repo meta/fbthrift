@@ -46,6 +46,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServerRegistry.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/RocketServerConnectionBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapterFactory.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ClientIdentityHook.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/TProcessorEventHandlerBridge.h>
@@ -307,10 +308,9 @@ class FastThriftServerBase {
    * Must be called before start()/serve().
    * @throws std::logic_error if called after start()/serve().
    */
-  void setClientIdentityHook(apache::thrift::ClientIdentityHook hook);
+  void setClientIdentityHook(ClientIdentityHook hook);
 
-  const apache::thrift::ClientIdentityHook& getClientIdentityHook()
-      const noexcept {
+  const ClientIdentityHook& getClientIdentityHook() const noexcept {
     return clientIdentityHook_;
   }
 
@@ -641,7 +641,7 @@ class FastThriftServerBase {
   std::vector<server::ThriftPipelineRegistration> thriftPipelineRegistrations_;
   bool requiresCachedEkms_{false};
   server::TProcessorEventHandlers eventHandlers_;
-  apache::thrift::ClientIdentityHook clientIdentityHook_;
+  ClientIdentityHook clientIdentityHook_;
   server::RocketServerConnectionBuilder rocketConnectionBuilder_;
   // Consumed into the layouts below at start(); untouched after.
   ExtensionLayoutBuilder connExtensionBuilder_;

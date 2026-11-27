@@ -31,11 +31,16 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/adapter/RocketServerAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/common/RocketServerConnection.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ClientIdentityHook.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ConnectionPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/PayloadVariants.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RocketFrameDecoder.h>
+
+namespace apache::thrift::fast_thrift::thrift {
+class ThriftConnContext;
+}
 
 namespace apache::thrift::fast_thrift::thrift::server {
 
@@ -89,7 +94,9 @@ class ThriftServerTransportAdapter {
   // torn down (disconnect + destroy) when the thrift pipeline tears down
   // this bridge, via handlerRemoved / onPipelineInactive.
   FOLLY_NOINLINE explicit ThriftServerTransportAdapter(
-      std::unique_ptr<rocket::server::RocketServerConnection> rocketConn);
+      std::unique_ptr<rocket::server::RocketServerConnection> rocketConn,
+      ThriftConnContext* FOLLY_NULLABLE connection = nullptr,
+      const ClientIdentityHook* FOLLY_NULLABLE clientIdentityHook = nullptr);
 
   FOLLY_NOINLINE ~ThriftServerTransportAdapter();
 
@@ -148,11 +155,15 @@ class ThriftServerTransportAdapter {
    * it into the thrift pipeline via fireRead.
    */
   channel_pipeline::Result onTransportRequest(
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      channel_pipeline::TypeErasedBox&& msg,
+      ThriftConnContext* FOLLY_NULLABLE connection = nullptr,
+      const ClientIdentityHook* FOLLY_NULLABLE clientIdentityHook =
+          nullptr) noexcept {
     auto request = msg.take<rocket::server::RocketRequestMessage>();
 
     if (request.frame.isConnectionFrame()) [[unlikely]] {
-      return onConnectionFrame(std::move(request));
+      return onConnectionFrame(
+          std::move(request), connection, clientIdentityHook);
     }
 
     auto decoded = fromRocketFrame(
@@ -273,14 +284,18 @@ class ThriftServerTransportAdapter {
   // handler forwards them. SETUP is the one this layer answers; anything else
   // has already been consumed by the handler that owns it, so it is dropped.
   FOLLY_NOINLINE channel_pipeline::Result onConnectionFrame(
-      rocket::server::RocketRequestMessage&& request) noexcept;
+      rocket::server::RocketRequestMessage&& request,
+      ThriftConnContext* FOLLY_NULLABLE connection,
+      const ClientIdentityHook* FOLLY_NULLABLE clientIdentityHook) noexcept;
 
   // Decodes a validated SETUP frame into the inbound setup message. What the
   // server will speak is negotiated downstream, not here.
   FOLLY_NOINLINE channel_pipeline::Result onSetupFrame(
-      rocket::server::RocketRequestMessage&& request) noexcept;
+      rocket::server::RocketRequestMessage&& request,
+      ThriftConnContext* FOLLY_NULLABLE connection,
+      const ClientIdentityHook* FOLLY_NULLABLE clientIdentityHook) noexcept;
 
-  // Refuses the setup exchange when its metadata cannot be decoded at all.
+  // Refuses the setup exchange before forwarding it to the Thrift pipeline.
   // Always non-Success: the connection is left awaiting a setup it will not
   // get.
   FOLLY_NOINLINE channel_pipeline::Result rejectSetup(

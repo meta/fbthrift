@@ -3176,6 +3176,92 @@ TEST(
       0);
 }
 
+struct HookResolvedIdentity {
+  int value;
+  std::atomic<int>& destroyed;
+};
+
+class ClientIdentityCheckingExtension {
+ public:
+  explicit ClientIdentityCheckingExtension(std::atomic<int>* observed)
+      : observed_(observed) {}
+
+  ftt::ConnectionVerdict onConnectionAttempted(
+      const ftt::ThriftSetupConnectionView& connection) noexcept {
+    const auto* identity =
+        static_cast<const HookResolvedIdentity*>(connection.peerIdentities());
+    EXPECT_NE(identity, nullptr);
+    if (identity != nullptr) {
+      EXPECT_EQ(identity->value, 42);
+      observed_->fetch_add(1, std::memory_order_relaxed);
+    }
+    return ftt::ConnectionVerdict::proceed();
+  }
+
+ private:
+  std::atomic<int>* observed_;
+};
+
+TEST(
+    FastThriftServerConnectionExtensionTest,
+    NativeSetupUsesClientIdentityHook) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  std::atomic<int> observed{0};
+  std::atomic<int> destroyed{0};
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(std::make_shared<TestHandler>());
+  server.setClientIdentityHook(
+      [&destroyed, value = 41](
+          const folly::AsyncTransport* transport,
+          X509* cert,
+          const folly::SocketAddress& address) mutable
+          -> std::unique_ptr<void, void (*)(void*)> {
+        EXPECT_NE(transport, nullptr);
+        EXPECT_EQ(cert, nullptr);
+        EXPECT_TRUE(address.isLoopbackAddress());
+        return {new HookResolvedIdentity{++value, destroyed}, +[](void* ptr) {
+                  auto* identity = static_cast<HookResolvedIdentity*>(ptr);
+                  identity->destroyed.fetch_add(1, std::memory_order_relaxed);
+                  delete identity;
+                }};
+      });
+  server.addModule(
+      ftt::FastServerModule("identity")
+          .addThriftExtension<ClientIdentityCheckingExtension>(&observed));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+  server.stop();
+  EXPECT_EQ(observed.load(std::memory_order_relaxed), 2);
+  EXPECT_EQ(destroyed.load(std::memory_order_relaxed), 2);
+}
+
+TEST(
+    FastThriftServerConnectionExtensionTest,
+    NativeClientIdentityHookCanRefuseSetup) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  ConnectionRecorder rec;
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(std::make_shared<TestHandler>());
+  server.setClientIdentityHook(
+      [](const folly::AsyncTransport*, X509*, const folly::SocketAddress&)
+          -> std::unique_ptr<void, void (*)(void*)> {
+        throw std::runtime_error("identity hook failed");
+      });
+  server.addModule(
+      ftt::FastServerModule("lifecycle")
+          .addThriftExtension<ConnectionLifecycleExtension>(&rec));
+  server.start();
+
+  EXPECT_TRUE(addRoundTripFails(server.getAddress()));
+  server.stop();
+  EXPECT_EQ(rec.attempted.load(std::memory_order_relaxed), -1);
+  EXPECT_EQ(rec.request.load(std::memory_order_relaxed), -1);
+}
+
 // Refusing at the first decision point short-circuits: no SETUP response is
 // built, the established callback never runs, and the client's RPC fails.
 TEST(FastThriftServerConnectionExtensionTest, AttemptedRejectionRefusesSetup) {

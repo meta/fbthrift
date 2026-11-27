@@ -287,7 +287,7 @@ void detail::FastThriftServerBase::addNativeThriftPipelineHandlersImpl(
 }
 
 void detail::FastThriftServerBase::setClientIdentityHook(
-    apache::thrift::ClientIdentityHook hook) {
+    ClientIdentityHook hook) {
   std::lock_guard<std::mutex> lock(lifecycleMutex_);
   if (state_ != State::kNotStarted) {
     throw std::logic_error(
@@ -696,6 +696,9 @@ void detail::FastThriftServerBase::start() {
       .connExtensionLayout = connExtensionLayout_,
       .requestExtensionLayout = requestExtensionLayout_,
       .methodMetadata = methodMetadataRegistry_,
+      .clientIdentityHook = !hasClassicEventHandlers && clientIdentityHook_
+          ? &clientIdentityHook_
+          : nullptr,
       .requiresCachedEkms = requiresNativeCachedEkms,
       .enableRequestHeaders = config_.enableRequestHeaders,
       .enableChecksum = config_.enableChecksum,
