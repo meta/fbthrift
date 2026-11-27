@@ -171,9 +171,13 @@ void throwIfContainsMapMask(const Mask& mask) {
     }
     return;
   }
-  for (const auto& [_, nestedMask] : *CHECK_NOTNULL(getFieldMask(mask))) {
-    throwIfContainsMapMask(nestedMask);
+  if (auto* fieldMapPtr = getFieldMask(mask)) {
+    for (const auto& [_, nestedMask] : *fieldMapPtr) {
+      throwIfContainsMapMask(nestedMask);
+    }
+    return;
   }
+  folly::throw_exception<std::runtime_error>("The mask has no selection.");
 }
 
 void validateSinglePath(const Mask& mask) {
