@@ -642,3 +642,42 @@ func UnmatchedBeginEndProtocolTest(t *testing.T, formatFactory func(io.ReadWrite
 		})
 	})
 }
+
+func TestSkipMapValueDepthLimit(t *testing.T) {
+	// A map whose value is itself a map, nested past DEFAULT_RECURSION_DEPTH.
+	// Skipping an unknown field of this shape must trip the depth guard rather
+	// than recurse until the goroutine stack is exhausted.
+	compactNested := func(depth int) []byte {
+		var buf bytes.Buffer
+		for i := 0; i < depth-1; i++ {
+			buf.Write([]byte{0x01, 0x3B, 0x00}) // size=1, kType=BYTE vType=MAP, key byte
+		}
+		buf.Write([]byte{0x01, 0x33, 0x00, 0x00}) // innermost map<byte,byte>{0:0}
+		return buf.Bytes()
+	}
+	binaryNested := func(depth int) []byte {
+		var buf bytes.Buffer
+		for i := 0; i < depth-1; i++ {
+			buf.Write([]byte{byte(types.BYTE), byte(types.MAP), 0, 0, 0, 1, 0x00})
+		}
+		buf.Write([]byte{byte(types.BYTE), byte(types.BYTE), 0, 0, 0, 1, 0x00, 0x00})
+		return buf.Bytes()
+	}
+
+	const depth = types.DEFAULT_RECURSION_DEPTH + 100
+	tests := []struct {
+		name string
+		dec  types.Decoder
+	}{
+		{"compact", NewCompactFormat(bytes.NewBuffer(compactNested(depth)))},
+		{"binary", NewBinaryFormat(bytes.NewBuffer(binaryNested(depth)))},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.dec.Skip(types.MAP)
+			var pe *types.ProtocolException
+			require.ErrorAs(t, err, &pe)
+			require.Equal(t, types.DEPTH_LIMIT, pe.TypeID())
+		})
+	}
+}
