@@ -20,6 +20,8 @@
 
 #include <thrift/lib/cpp/TApplicationException.h>
 
+#include <cstddef>
+
 namespace apache::thrift {
 
 bool HeaderChannelTrait::isSupportedClient(CLIENT_TYPE ct) {
@@ -36,7 +38,8 @@ bool HeaderChannelTrait::isSupportedClient(CLIENT_TYPE ct) {
         return clients;
       }());
 
-  return (*supportedClients)[ct];
+  const auto index = static_cast<std::size_t>(ct);
+  return index < supportedClients->size() && (*supportedClients)[index];
 }
 
 void HeaderChannelTrait::checkSupportedClient(CLIENT_TYPE ct) {
